@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+    h1, h2, h3, h4 {
+        color: #4a4a4a;
+        font-family: verdana;
+        font-weight:200;
+    }
+    .circle {
+        stroke: steelblue;
+        fill: steelblue;
+    }
+
+    .line {
+        stroke: lightgray;
+    }
+
+    div.tooltip {
+        position: absolute;
+        width: 120px;
+        height: 50px;
+        padding: 2px;
+        font: 14px arial;
+        background: black;
+        color: white;
+        border: 0px;
+        padding-left: 15px;
+        pointer-events: none;
+        border-radius: 8px;
+
+    }
+
+</style>
+<body>
+<div>
+    <h2>Programming Exercise 3: D3 - Trading Node Network</h2>
+    <h4>Tim Rickman - 18544568</h4>
+</div>
+<div id = "node_network">
+
+</div>
+</body>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script>
+
+    // provide the width, height and margins for the SVG DOM element
+    var margin = {top: 30, right: 20, bottom: 30, left: 50},
+            width = 1000 - margin.left - margin.right,
+            height = 600 - margin.top - margin.bottom;
+
+    var div = d3.select("#node_network").append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0);
+
+    // select the DOM element body and append the svg element with the dimensions specified in the variables above
+    var svg = d3.select("body").append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+
+    // append to g elements to the svg (completed here as we draw the circles before the lines but need the circles to be in front of the line
+    var layer1 = svg.append('g');
+    var layer2 = svg.append('g');
+
+
+    // Define the div for the tooltip
+    var div = d3.select("body").append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0);
+
+    // load the data from the json file
+    d3.json("data.json", function(error, data) {
+        if (error) throw error;
+
+        // for every data point in data.nodes part of the json append a circle
+        layer2.selectAll("circle")
+                // use the nodes section of the json file
+                .data(data.nodes)
+                .enter()
+                .append("circle")
+                .attr("class", "circle")
+                // set the circle attributes from the data
+                .attr("cx", function(d) { return d.x; })
+                .attr("cy", function(d) { return d.y; })
+                .attr("id", function(d) { return d.id; })
+                // set the radius to 0 (temporary, the radius is changed during when the links are added
+                .attr("r", 0);
+
+
+
+        layer1.selectAll("line")
+                // use the links section of the json file
+                .data(data.links)
+                .enter()
+                // append a line for each json object in the data
+                .append("line")
+                .attr("class", "line")
+                // get the x and y co-ordinates for the line for each node by selecting the element by it's id and getting the cx or cy attribute
+                // these elements and attributes are created in the layer2.selectAll("circle") code above
+                .attr("x1", function(d) { return d3.select('#' + d.node01).attr("cx") })
+                .attr("y1", function(d) { return d3.select('#' + d.node01).attr("cy") })
+                .attr("x2", function(d) { return d3.select('#' + d.node02).attr("cx") })
+                .attr("y2", function(d) { return d3.select('#' + d.node02).attr("cy") })
+                .attr("amount", function(d) { return d.amount })
+                .attr("stroke-width", function(d) { return d.amount / 50})
+                // for each json object in the data
+                .each( function(d) {
+                    // select the element from using the node01 data entry as id
+                    var Node01 =  d3.select('#' + d.node01)
+                    // set the elements r (radius) to be it's current r + the trade amount divided by 100
+                    Node01.attr("r", (+Node01.attr("r") + (+d.amount/100)))
+                    var Node02 =  d3.select('#' + d.node02)
+                    Node02.attr("r", +Node02.attr("r") + (+d.amount/100))
+                })
+                // on mouseover transisition in and set the html contents of the tooltip div
+                // code adapted from https://bl.ocks.org/d3noob/257c360b3650b9f0a52dd8257d7a2d73
+                .on("mouseover", function(d) {
+                    div.transition()
+                            .duration(200)
+                            .style("opacity", .9);
+                    div    .html('location 1: ' + d.node01 + '<br/>'  + 'location 2: ' + d.node02 + '<br/>'  + 'amount: ' + d.amount)
+                            .style("left", (d3.event.pageX) + "px")
+                            .style("top", (d3.event.pageY - 28) + "px");
+                })
+                // on mouseout fade the div
+                .on("mouseout", function(d) {
+                    div.transition()
+                            .duration(500)
+                            .style("opacity", 0);
+                });
+
+        d3.selectAll("circle")
+            // on mouseover transisition in and set the html contents of the tooltip div
+                .on("mouseover", function(d) {
+                    div.transition()
+                            .duration(200)
+                            .style("opacity", .9);
+                    div    .html('location: ' + d3.select(this).attr("id") + '<br/>'  + 'amount: ' + parseInt(d3.select(this).attr("r") * 100))
+                            .style("left", (d3.event.pageX) + "px")
+                            .style("top", (d3.event.pageY - 28) + "px");
+                })
+            // transition fade the label div on mouseout
+                .on("mouseout", function(d) {
+                    div.transition()
+                            .duration(500)
+                            .style("opacity", 0);
+                });
+    });
+
+
+
+
+</script>
